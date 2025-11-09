@@ -1,39 +1,51 @@
-name: Matrix Build and Artifact Upload
+name: Matrix Build with Artifacts (b8f7f41)
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
 
 jobs:
   build:
-    # Matrix strategy with 3 Python versions
+    # Matrix strategy — 3 variants (Node + OS)
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11]
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [16, 18, 20]
+        include:
+          - os: ubuntu-latest
+            node: 16
+          - os: windows-latest
+            node: 18
+          - os: macos-latest
+            node: 20
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          node-version: ${{ matrix.node }}
 
-      - name: matrix-b8f7f41
-        run: echo "Building for Python version ${{ matrix.python-version }}"
+      # Unique identifier step
+      - name: Identify matrix variant (matrix-b8f7f41)
+        id: matrix-b8f7f41
+        run: echo "Running on OS=${{ matrix.os }}, Node=${{ matrix.node }}"
 
       - name: Generate build artifact
         run: |
-          echo "Build output for Python version ${{ matrix.python-version }}" > build_output_${{ matrix.python-version }}.txt
-          echo "Timestamp: $(date)" >> build_output_${{ matrix.python-version }}.txt
-          echo "Python path: $(which python)" >> build_output_${{ matrix.python-version }}.txt
-          cat build_output_${{ matrix.python-version }}.txt
+          mkdir -p output
+          echo "This is build artifact for OS=${{ matrix.os }} and Node=${{ matrix.node }}" > output/artifact-info.txt
+          echo "{ \"os\": \"${{ matrix.os }}\", \"node\": \"${{ matrix.node }}\" }" > output/build-metadata.json
 
-      - name: Upload artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-b8f7f41-py${{ matrix.python-version }}
-          path: build_output_${{ matrix.python-version }}.txt
+          name: build-b8f7f41-${{ matrix.os }}-node${{ matrix.node }}
+          path: output/
